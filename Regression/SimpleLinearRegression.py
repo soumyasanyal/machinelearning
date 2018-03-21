@@ -60,18 +60,18 @@ class SimpleLinearRegression:
 
 # In[6]:
 
-L = SimpleLinearRegression()
-X_train = np.array([1, 2, 4, 3, 5])
-Y_train = np.array([1, 3, 3, 2, 5])
-print('X_train: ', X_train)
-print('Y_train: ', Y_train)
-print('Fitting Simple Linear Regression model..')
-L.fit(X_train, Y_train)
-X_test = np.array([1, 2, 4, 3, 5])
-Y_test = np.array([1, 3, 3, 2, 5])
-print('X_test: ', X_test)
-print('Y_test: ', Y_test)
-Y_predict = L.predict(X_test)
-print('Prediction YPredict: ', Y_predict)
-print('R squared score: ', L.score(Y_test, Y_predict))
-
+if __name__ == "__main__":
+    L = SimpleLinearRegression()
+    X_train = np.array([1, 2, 4, 3, 5])
+    Y_train = np.array([1, 3, 3, 2, 5])
+    print('X_train: ', X_train)
+    print('Y_train: ', Y_train)
+    print('Fitting Simple Linear Regression model..')
+    L.fit(X_train, Y_train)
+    X_test = np.array([1, 2, 4, 3, 5])
+    Y_test = np.array([1, 3, 3, 2, 5])
+    print('X_test: ', X_test)
+    print('Y_test: ', Y_test)
+    Y_predict = L.predict(X_test)
+    print('Prediction YPredict: ', Y_predict)
+    print('R squared score: ', L.score(Y_test, Y_predict))

@@ -49,11 +49,23 @@
 # $$W = W - \alpha * (X^{(i)}W - Y^{(i)})\cdot(X^{(i)})^T$$
 # where $i$ is selected randomly from the $m$ samples.
 
+# #### Log loss optimization using Gradient Descent
+
+# The gradient function used for log loss optimization (ususally used for Logistic Regression):
+# $$J(w) = -\frac{1}{m}\sum_{i=1}^{m}[y^{(i)}log(h_w(x^{(i)})) + (1 - y^{(i)})log(1 - h_w(x^{(i)}))]$$
+# where $h_w(x)$ is the sigmoid function:
+# $$h_w(x) = \frac{1}{1 + e^{-w^Tx}}$$
+# The gradient of the cost function comes out to be:
+# $$\nabla J(w) = \frac{1}{m}\sum_{i=1}^{m}[h_w(x^{(i)}) - y^{(i)}]x^{(i)}$$
+# So, the final update function comes out to be the same, with the only difference that the hypothesis function is sigmoid rather than a linear function.
+# 
+# <b>To test the logloss cost function, we need to simulate data for logistic regression. We'll do this in another post specific to Logistic Regression.</b>
+
 # # Gradient Descent in python
 
-# We implement both the varients of gradient descent discussed above. Also, we'll need to implement some plotting functionality to see how the gradient descent does for both cases. The main class should take the type of descent to apply, the kind of loss function to use, the learning rate, the epochs and the tolerance. It'll then fit the training samples to get the desired coefficients.
+# We implement both the varients of gradient descent discussed above. Also, we'll need to implement some plotting functionality to see how the gradient descent does for both cases. The main class should take the type of descent to apply, the kind of loss function to use, the learning rate and the epochs. It'll then fit the training samples to get the desired coefficients.
 
-# In[81]:
+# In[11]:
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,7 +74,7 @@ import random
 class GradientDescent:
     
     #method: batch or stochastic.
-    #loss: the loss function -> ols (ordinary least squares)
+    #loss: the loss function -> ols (ordinary least squares), logloss (for Logistic Regressions)
     #lr: the learning rate, alpha
     #epochs: the number of iterations
     #adaptive: use adaptive learning rate
@@ -74,11 +86,26 @@ class GradientDescent:
         self.epochs = epochs
         self.adaptive = adaptive
     
-    def __OLS(self, Y, Y_predict):
-        return sum((Y_predict - Y)**2)/(2*len(Y))
+    def __OLS(self, Y, YPredict):
+        return sum((YPredict - Y)**2)/(2*len(Y))
+    
+    def __logLoss(self, Y, YPredict):
+        return sum((-1.0/len(Y)) * (Y * np.log(YPredict) + (1 - Y) * np.log(1 - YPredict)))
+
+    def __costVal(self, Y, YPredict):
+        if self.loss == 'ols':
+            return self.__OLS(Y, YPredict)
+        elif self.loss == 'logloss':
+            return self.__logLoss(Y, YPredict)
+    
+    def __sigmoid(self, X):
+        return 1.0/(1 + np.exp(-X))
     
     def predict(self, X):
-        return np.matmul(X, self.coeff)
+        if self.loss == 'ols':
+            return np.matmul(X, self.coeff)
+        elif self.loss == 'logloss':
+            return self.__sigmoid(np.matmul(X, self.coeff))
 
     def __mean(self, X):
         return sum(X) / float(len(X))
@@ -86,78 +113,78 @@ class GradientDescent:
     def __squareSum(self, X, Y):
         return sum((X - Y)**2)
     
-    def score(self, Y_test, Y_predict):
-        return 1 - self.__squareSum(Y_test, Y_predict) / self.__squareSum(Y_test, self.__mean(Y_test))
+    def score(self, YTest, YPredict):
+        return 1 - self.__squareSum(YTest, YPredict) / self.__squareSum(YTest, self.__mean(YTest))
     
-    def __plotLoss(self, olsValues):
-        plt.plot(olsValues)
+    def __plotLoss(self, costValues):
+        plt.plot(costValues)
         plt.ylabel('Loss function value')
         plt.xlabel('Epochs')
         plt.show()
     
-    #method=batch and loss=ols
-    def __batchOLS(self, X, Y):
-        olsValues = []
-        Prev_gradient = float("inf")
+    #method=batch
+    def __batch(self, X, Y):
+        costValues = []
+        prevGradient = float("inf")
         for epoch in range(self.epochs):
-            Y_predict = self.predict(X)
-            ols = self.__OLS(Y, Y_predict)
-            gradient = ((Y_predict - Y).reshape(-1,1)*X).sum(axis=0).reshape(-1,1) / len(Y)
+            YPredict = self.predict(X)
+            costVal = self.__costVal(Y, YPredict)
+            gradient = ((YPredict - Y).reshape(-1,1)*X).sum(axis=0).reshape(-1,1) / len(Y)
             if(self.adaptive):
                 #Check if current gradient is smaller than previous gradient.
-                if(np.sum(np.absolute(gradient)) <= Prev_gradient):
+                if(np.sum(np.absolute(gradient)) <= prevGradient):
                     self.lr *= 1.05
                     self.coeff = self.coeff - self.lr * gradient
                 else:
                     #just reduce the learning rate and skip any update
                     self.lr *= 0.5
-                Prev_gradient = np.sum(np.absolute(gradient))
+                prevGradient = np.sum(np.absolute(gradient))
             else:
                 self.coeff = self.coeff - self.lr * gradient
-            olsValues.append(ols)
+            costValues.append(costVal)
 #             print('>epoch=%d, lrate=%.6f, error=%.3f' % (epoch, self.lr, ols))
-        self.__plotLoss(olsValues)
+        self.__plotLoss(costValues)
         return self.coeff
     
-    #method=stochastic and loss=ols
-    def __stochasticOLS(self, X, Y):
-        olsValues = []
-        Prev_gradient = float("inf")
+    #method=stochastic
+    def __stochastic(self, X, Y):
+        costValues = []
+        prevGradient = float("inf")
         for epoch in range(self.epochs):
             #The index which is used for gradient update
             sampleIndex = random.randint(0, len(Y)-1)
             XSample = X[sampleIndex,:]
             YSample = Y[sampleIndex,:]
             YPredict = self.predict(XSample)
-            ols = self.__OLS(YSample, YPredict)
+            costVal = self.__costVal(YSample, YPredict)
             gradient = ((YPredict - YSample)*XSample).reshape(-1,1)
             if(self.adaptive):
                 #Check if current gradient is smaller than previous gradient.
-                if(np.sum(np.absolute(gradient)) <= Prev_gradient):
+                if(np.sum(np.absolute(gradient)) <= prevGradient):
                     self.lr *= 1.05
                     self.coeff = self.coeff - self.lr * gradient
                 else:
                     #just reduce the learning rate and skip any update
                     self.lr *= 0.5
-                Prev_gradient = np.sum(np.absolute(gradient))
+                prevGradient = np.sum(np.absolute(gradient))
             else:
                 self.coeff = self.coeff - self.lr * gradient
-            olsValues.append(ols)
+            costValues.append(costVal)
 #             print('>epoch=%d, lrate=%f, error=%.3f' % (epoch, self.lr, ols))
-        self.__plotLoss(olsValues)
+        self.__plotLoss(costValues)
         return self.coeff
     
     #X is the feature matrix (prepended with 1) and Y is the response vector
     def fit(self, X, Y):
         Num_features = len(X[0,:])
         self.coeff = np.random.rand(Num_features, 1)
-        if self.method == 'batch' and self.loss == 'ols':
-            return self.__batchOLS(X, Y)
-        elif self.method == 'stochastic' and self.loss == 'ols':
-            return self.__stochasticOLS(X, Y)
+        if self.method == 'batch':
+            return self.__batch(X, Y)
+        elif self.method == 'stochastic':
+            return self.__stochastic(X, Y)
 
 
-# In[82]:
+# In[12]:
 
 import random
 
@@ -174,53 +201,53 @@ def randomSampleGenerator(n):
         X.append([1, x1, x2])
     return [np.array(X), np.array(Y)]
 
-N_samples = 1000
-[X, Y] = randomSampleGenerator(N_samples)
-print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
-[X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
-[X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
+if __name__ == "__main__":
+    N_samples = 1000
+    [X, Y] = randomSampleGenerator(N_samples)
+    print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
+    [X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
+    [X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
 
-GD = GradientDescent(epochs=50, lr=0.001)
-print('\n\nGradient descent: batch with no adaptive learning')
-coeff = GD.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = GD.predict(X_test)
-print('R squared score: ', GD.score(Y_test, Y_predict))
+    GD = GradientDescent(epochs=50, lr=0.001)
+    print('\n\nGradient descent: batch with no adaptive learning')
+    coeff = GD.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    YPredict = GD.predict(X_test)
+    print('R squared score: ', GD.score(Y_test, YPredict))
 
-GD = GradientDescent(epochs=50, lr=0.01)
-print('\n\nGradient descent: batch with high learning rate and no adaptive learning')
-coeff = GD.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = GD.predict(X_test)
-print('R squared score: ', GD.score(Y_test, Y_predict))
+    GD = GradientDescent(epochs=50, lr=0.01)
+    print('\n\nGradient descent: batch with high learning rate and no adaptive learning')
+    coeff = GD.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    YPredict = GD.predict(X_test)
+    print('R squared score: ', GD.score(Y_test, YPredict))
 
-GD = GradientDescent(epochs=50, lr=0.01, adaptive=True)
-print('\n\nGradient descent: batch with high learning rate and adaptive learning')
-coeff = GD.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = GD.predict(X_test)
-print('R squared score: ', GD.score(Y_test, Y_predict))
+    GD = GradientDescent(epochs=50, lr=0.01, adaptive=True)
+    print('\n\nGradient descent: batch with high learning rate and adaptive learning')
+    coeff = GD.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    YPredict = GD.predict(X_test)
+    print('R squared score: ', GD.score(Y_test, YPredict))
 
+    # In[13]:
 
-# In[83]:
+    N_samples = 1000
+    [X, Y] = randomSampleGenerator(N_samples)
+    print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
+    [X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
+    [X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
 
-N_samples = 1000
-[X, Y] = randomSampleGenerator(N_samples)
-print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
-[X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
-[X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
+    GD = GradientDescent(method='stochastic', epochs=1000, lr=0.0001)
+    print('\n\nGradient descent: stochastic with no adaptive learning')
+    coeff = GD.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    YPredict = GD.predict(X_test)
+    print('R squared score: ', GD.score(Y_test, YPredict))
 
-GD = GradientDescent(method='stochastic', epochs=1000, lr=0.0001)
-print('\n\nGradient descent: stochastic with no adaptive learning')
-coeff = GD.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = GD.predict(X_test)
-print('R squared score: ', GD.score(Y_test, Y_predict))
-
-GD = GradientDescent(method='stochastic', epochs=1000, lr=0.01, adaptive=True)
-print('\n\nGradient descent: stochastic with adaptive learning')
-coeff = GD.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = GD.predict(X_test)
-print('R squared score: ', GD.score(Y_test, Y_predict))
+    GD = GradientDescent(method='stochastic', epochs=1000, lr=0.01, adaptive=True)
+    print('\n\nGradient descent: stochastic with adaptive learning')
+    coeff = GD.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    YPredict = GD.predict(X_test)
+    print('R squared score: ', GD.score(Y_test, YPredict))
 

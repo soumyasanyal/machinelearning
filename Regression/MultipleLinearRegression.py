@@ -73,21 +73,21 @@ def randomSampleGenerator(n):
         X.append([1, x1, x2])
     return [np.array(X), np.array(Y)]
 
-N_samples = 1000
-[X, Y] = randomSampleGenerator(N_samples)
-print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
-#print('Sample feature matrix:\n', X)
-#print('Response vector:', Y)
-[X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
-[X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
-#print('Training set:\n', X_train)
-#print(Y_train)
-#print('Test set:\n', X_test)
-#print(Y_test)
-MLR = MultipleLinearRegression(2)
-coeff = MLR.fit(X_train, Y_train)
-print('Optimized Coefficients:', coeff)
-Y_predict = MLR.predict(X_test)
-#print('Prediction YPredict: ', Y_predict)
-print('R squared score: ', MLR.score(Y_test, Y_predict))
-
+if __name__ == "__main__":
+    N_samples = 1000
+    [X, Y] = randomSampleGenerator(N_samples)
+    print('Sample function which is being predicted: y = 3 +4*x1 + 7*x2')
+    #print('Sample feature matrix:\n', X)
+    #print('Response vector:', Y)
+    [X_train, Y_train ] = [X[0:int(0.7*N_samples),:], Y[0:int(0.7*N_samples)]]
+    [X_test, Y_test ] = [X[int(0.7*N_samples):N_samples,:], Y[int(0.7*N_samples):N_samples]]
+    #print('Training set:\n', X_train)
+    #print(Y_train)
+    #print('Test set:\n', X_test)
+    #print(Y_test)
+    MLR = MultipleLinearRegression(2)
+    coeff = MLR.fit(X_train, Y_train)
+    print('Optimized Coefficients:', coeff)
+    Y_predict = MLR.predict(X_test)
+    #print('Prediction YPredict: ', Y_predict)
+    print('R squared score: ', MLR.score(Y_test, Y_predict))
