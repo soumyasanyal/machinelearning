@@ -6,3 +6,4 @@ Basic implementation of machine learning algorithms from scratch to understand t
 2. Multiple Linear Regression (using matrix solution)
 3. Gradient Descent - batch and stochastic
 4. Logistic Regression
+5. Support Vector Machines
