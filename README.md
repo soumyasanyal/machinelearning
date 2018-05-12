@@ -9,3 +9,4 @@ Basic implementation of machine learning algorithms from scratch to understand t
 5. Support Vector Machines
 6. Decision Trees
 7. K-Means Clustering
+8. Neural Network ( with fixed hidden layer + batch gradient descent)
